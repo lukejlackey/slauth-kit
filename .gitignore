@@ -25,3 +25,8 @@ terraform.tfvars
 .env
 .env.*
 secrets.json
+
+# API
+SlauthApi/appsettings.Development.json
+SlauthApi/*.http
+SlauthApi/Properties/launchSettings.json
