@@ -30,3 +30,21 @@ secrets.json
 SlauthApi/appsettings.Development.json
 SlauthApi/*.http
 SlauthApi/Properties/launchSettings.json
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Vite build output
+frontend/slauth-modal/dist/
+
+# VS Code specific
+*.code-workspace
+
+# Frontend temporary files
+frontend/slauth-modal/.env
+frontend/slauth-modal/.env.*
