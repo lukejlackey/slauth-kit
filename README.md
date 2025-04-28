@@ -1,6 +1,6 @@
 # 🦥 Slauth-Kit
 
-**Slauth-Kit** is a plug-and-play authentication backend designed for small devs on tight budgets. It runs in AWS, handles user login with a C# API w/ JWT, and uses MongoDB for storage.
+**Slauth-Kit** is a plug-and-play authentication backend designed for small devs on tight budgets. It runs in AWS, handles user login with a .NET API w/ JWT, and uses MongoDB for storage.
 
 ---
 
