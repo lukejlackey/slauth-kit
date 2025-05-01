@@ -17,5 +17,17 @@ export const useSlauth = (baseUrl: string) => {
     }
   };
 
-  return { login, error };
+  const signup = async (email: string, password: string) => {
+    try {
+      const res = await api.post("/api/auth/signup", { email, password });
+      localStorage.setItem("slauth_token", res.data.token);
+      setError(null);
+      return res.data.token;
+    } catch (err: any) {
+      setError(err.response?.data || "Signup failed");
+      return null;
+    }
+  };
+
+  return { login, signup, error };
 };
