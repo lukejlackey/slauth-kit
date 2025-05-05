@@ -1,6 +1,6 @@
 import { motion, useAnimation } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Eye, EyeOff } from "lucide-react"; // or your preferred icon library
+import { Eye, EyeOff } from "lucide-react";
 
 interface Props {
   isSignup: boolean;
@@ -54,8 +54,8 @@ export const SlauthAuthForm = ({
   ];
 
   const allPasswordChecksPass = passwordChecks.every(({ test }) => test(password));
-
   const passwordsMismatch = isSignup && (confirmPassword === "" || password !== confirmPassword);
+  const loginFieldsValid = !isSignup && email.trim() !== "" && password !== "";
 
   const renderPasswordField = (
     id: string,
@@ -88,6 +88,11 @@ export const SlauthAuthForm = ({
       </button>
     </div>
   );
+
+  const isButtonDisabled =
+    isLoading ||
+    (isSignup && (!allPasswordChecksPass || passwordsMismatch)) ||
+    (!isSignup && !loginFieldsValid);
 
   return (
     <motion.form onSubmit={handleSubmit} className="overflow-hidden" animate={controls}>
@@ -128,20 +133,15 @@ export const SlauthAuthForm = ({
       {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
 
       <button
-        disabled={
-          isLoading ||
-          (isSignup && (!allPasswordChecksPass || passwordsMismatch))
-        }
+        disabled={isButtonDisabled}
         type="submit"
-        className={`${isLoading ||
-          (isSignup && (!allPasswordChecksPass || passwordsMismatch))
+        className={`${isButtonDisabled
           ? "bg-gray-400 cursor-not-allowed"
           : "bg-sloth-green hover:bg-green-600"
           } text-white font-semibold p-2 w-full rounded transition-all`}
       >
         {isLoading ? "Please wait..." : isSignup ? "Sign Up" : "Log In"}
       </button>
-
     </motion.form>
   );
 };
