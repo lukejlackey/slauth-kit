@@ -46,20 +46,14 @@ export const SlauthAuthForm = ({
     onSubmit();
   };
 
-  const getPasswordStrength = (pwd: string) => {
-    let score = 0;
-    if (pwd.length >= 8) score++;
-    if (/[A-Z]/.test(pwd)) score++;
-    if (/[0-9]/.test(pwd)) score++;
-    if (/[^A-Za-z0-9]/.test(pwd)) score++;
-
-    if (score <= 1) return { label: "Weak", color: "text-red-500" };
-    if (score === 2) return { label: "Medium", color: "text-yellow-500" };
-    return { label: "Strong", color: "text-green-500" };
-  };
+  const passwordChecks = [
+    { label: "At least 8 characters", test: (pwd: string) => pwd.length >= 8 },
+    { label: "Contains a number", test: (pwd: string) => /[0-9]/.test(pwd) },
+    { label: "Contains an uppercase letter", test: (pwd: string) => /[A-Z]/.test(pwd) },
+    { label: "Contains a special character", test: (pwd: string) => /[^A-Za-z0-9]/.test(pwd) }
+  ];
 
   const passwordsMismatch = isSignup && password && confirmPassword && password !== confirmPassword;
-  const strength = isSignup && password ? getPasswordStrength(password) : null;
 
   const renderPasswordField = (
     id: string,
@@ -110,8 +104,12 @@ export const SlauthAuthForm = ({
 
       {renderPasswordField("password", "Password", password, setPassword, showPassword, setShowPassword)}
 
-      {isSignup && strength && (
-        <p className={`text-sm mb-2 ${strength.color}`}>Password strength: {strength.label}</p>
+      {isSignup && (
+        <ul className="text-sm mb-2 ml-1">
+          {passwordChecks.map(({ label, test }) => (
+            <li key={label} className={test(password) ? "text-green-600" : "text-gray-500"}>✔ {label}</li>
+          ))}
+        </ul>
       )}
 
       {isSignup &&
