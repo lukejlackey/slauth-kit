@@ -53,7 +53,9 @@ export const SlauthAuthForm = ({
     { label: "Contains a special character", test: (pwd: string) => /[^A-Za-z0-9]/.test(pwd) }
   ];
 
-  const passwordsMismatch = isSignup && password && confirmPassword && password !== confirmPassword;
+  const allPasswordChecksPass = passwordChecks.every(({ test }) => test(password));
+
+  const passwordsMismatch = isSignup && (confirmPassword === "" || password !== confirmPassword);
 
   const renderPasswordField = (
     id: string,
@@ -114,22 +116,32 @@ export const SlauthAuthForm = ({
 
       {isSignup &&
         renderPasswordField("confirm-password", "Confirm Password", confirmPassword, setConfirmPassword, showConfirm, setShowConfirm)}
-
-      {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
-      {passwordsMismatch && (
-        <p className="text-red-500 text-sm mb-2">Passwords do not match</p>
+      
+      {isSignup && (
+        <ul className="text-sm mb-2 ml-1">
+          <li className={password && confirmPassword && !passwordsMismatch ? "text-green-600" : "text-gray-500"}>
+            ✔ Passwords match
+          </li>
+        </ul>
       )}
 
+      {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+
       <button
-        disabled={isLoading || passwordsMismatch}
+        disabled={
+          isLoading ||
+          (isSignup && (!allPasswordChecksPass || passwordsMismatch))
+        }
         type="submit"
-        className={`${isLoading || passwordsMismatch
+        className={`${isLoading ||
+          (isSignup && (!allPasswordChecksPass || passwordsMismatch))
           ? "bg-gray-400 cursor-not-allowed"
           : "bg-sloth-green hover:bg-green-600"
           } text-white font-semibold p-2 w-full rounded transition-all`}
       >
         {isLoading ? "Please wait..." : isSignup ? "Sign Up" : "Log In"}
       </button>
+
     </motion.form>
   );
 };
