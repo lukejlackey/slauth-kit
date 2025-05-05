@@ -1,5 +1,6 @@
 import { motion, useAnimation } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Eye, EyeOff } from "lucide-react"; // or your preferred icon library
 
 interface Props {
   isSignup: boolean;
@@ -27,6 +28,8 @@ export const SlauthAuthForm = ({
   onSubmit
 }: Props) => {
   const controls = useAnimation();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     if (error) {
@@ -43,7 +46,52 @@ export const SlauthAuthForm = ({
     onSubmit();
   };
 
+  const getPasswordStrength = (pwd: string) => {
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+
+    if (score <= 1) return { label: "Weak", color: "text-red-500" };
+    if (score === 2) return { label: "Medium", color: "text-yellow-500" };
+    return { label: "Strong", color: "text-green-500" };
+  };
+
   const passwordsMismatch = isSignup && password && confirmPassword && password !== confirmPassword;
+  const strength = isSignup && password ? getPasswordStrength(password) : null;
+
+  const renderPasswordField = (
+    id: string,
+    label: string,
+    value: string,
+    onChange: (v: string) => void,
+    show: boolean,
+    setShow: (b: boolean) => void
+  ) => (
+    <div className="relative mb-3">
+      <label className="block text-sm font-medium mb-1" htmlFor={id}>
+        {label}
+      </label>
+      <input
+        id={id}
+        className="border border-neutral-300 bg-white text-sloth-text p-2 rounded w-full pr-10 focus:outline-none focus:ring focus:ring-sloth-green"
+        type={show ? "text" : "password"}
+        placeholder="********"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required
+      />
+      <button
+        type="button"
+        onClick={() => setShow(!show)}
+        className="absolute right-2 top-[38px] text-gray-500 hover:text-gray-700"
+        tabIndex={-1}
+      >
+        {show ? <EyeOff size={18} /> : <Eye size={18} />}
+      </button>
+    </div>
+  );
 
   return (
     <motion.form onSubmit={handleSubmit} className="overflow-hidden" animate={controls}>
@@ -52,7 +100,7 @@ export const SlauthAuthForm = ({
       </label>
       <input
         id="email"
-        className="relative border border-neutral-300 bg-white text-sloth-text p-2 rounded w-full mb-3 focus:outline-none focus:ring focus:ring-sloth-green"
+        className="border border-neutral-300 bg-white text-sloth-text p-2 rounded w-full mb-3 focus:outline-none focus:ring focus:ring-sloth-green"
         type="email"
         placeholder="you@example.com"
         value={email}
@@ -60,35 +108,14 @@ export const SlauthAuthForm = ({
         required
       />
 
-      <label className="block text-sm font-medium mb-1" htmlFor="password">
-        Password
-      </label>
-      <input
-        id="password"
-        className="relative border border-neutral-300 bg-white text-sloth-text p-2 rounded w-full mb-3 focus:outline-none focus:ring focus:ring-sloth-green"
-        type="password"
-        placeholder="********"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
+      {renderPasswordField("password", "Password", password, setPassword, showPassword, setShowPassword)}
 
-      {isSignup && (
-        <>
-          <label className="block text-sm font-medium mb-1" htmlFor="confirm-password">
-            Confirm Password
-          </label>
-          <input
-            id="confirm-password"
-            className="relative border border-neutral-300 bg-white text-sloth-text p-2 rounded w-full mb-3 focus:outline-none focus:ring focus:ring-sloth-green"
-            type="password"
-            placeholder="********"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-          />
-        </>
+      {isSignup && strength && (
+        <p className={`text-sm mb-2 ${strength.color}`}>Password strength: {strength.label}</p>
       )}
+
+      {isSignup &&
+        renderPasswordField("confirm-password", "Confirm Password", confirmPassword, setConfirmPassword, showConfirm, setShowConfirm)}
 
       {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
       {passwordsMismatch && (
