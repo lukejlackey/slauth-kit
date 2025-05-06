@@ -29,5 +29,5 @@ export const useSlauth = (baseUrl: string) => {
     }
   };
 
-  return { login, signup, error };
+  return { login, signup, error, setError };
 };

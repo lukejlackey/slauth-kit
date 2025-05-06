@@ -15,7 +15,7 @@ export const SlauthModal = ({ baseUrl, onLoginSuccess }: SlauthModalProps) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const { login, signup, error } = useSlauth(baseUrl);
+  const { login, signup, error, setError } = useSlauth(baseUrl);
 
   const handleSubmit = async () => {
     if (isSignup && password !== confirmPassword) return;
@@ -36,6 +36,7 @@ export const SlauthModal = ({ baseUrl, onLoginSuccess }: SlauthModalProps) => {
     setEmail("");
     setPassword("");
     setConfirmPassword("");
+    setError(null);
   };
 
   return (
