@@ -7,7 +7,24 @@ function App() {
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
       {!token ? (
-        <SlauthModal baseUrl="http://localhost:8080" onLoginSuccess={setToken} />
+        <SlauthModal baseUrl="http://localhost:8080"
+          onLoginSuccess={setToken}
+          oauthProviders={[
+            "google",
+            "github",
+            "discord",
+            "microsoft",
+            "facebook",
+            "twitter",
+            "apple",
+            "gitlab",
+            "linkedin",
+            "reddit",
+            "amazon",
+            "twitch",
+          ]}
+          useThemedIcons={true}
+        />
       ) : (
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Logged in!</h1>

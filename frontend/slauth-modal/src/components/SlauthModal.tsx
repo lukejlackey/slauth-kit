@@ -2,13 +2,21 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useSlauth } from "../hooks/useSlauth";
 import { SlauthAuthForm } from "./SlauthAuthForm";
+import { OAuthButton } from "./OAuthButton";
 
 export interface SlauthModalProps {
   baseUrl: string;
   onLoginSuccess?: (token: string) => void;
+  oauthProviders?: OAuthProviderKey[];
+  useThemedIcons?: boolean;
 }
 
-export const SlauthModal = ({ baseUrl, onLoginSuccess }: SlauthModalProps) => {
+export const SlauthModal = ({
+  baseUrl,
+  onLoginSuccess,
+  oauthProviders = [],
+  useThemedIcons = false,
+}: SlauthModalProps) => {
   const [isSignup, setIsSignup] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -32,7 +40,6 @@ export const SlauthModal = ({ baseUrl, onLoginSuccess }: SlauthModalProps) => {
 
   const toggleMode = () => {
     setIsSignup((prev) => !prev);
-    // Clear form fields on mode switch
     setEmail("");
     setPassword("");
     setConfirmPassword("");
@@ -63,6 +70,31 @@ export const SlauthModal = ({ baseUrl, onLoginSuccess }: SlauthModalProps) => {
             setConfirmPassword={setConfirmPassword}
             onSubmit={handleSubmit}
           />
+
+          {oauthProviders.length > 0 && (
+            <div className={`m-4 ${oauthProviders.length > 4 ? "grid grid-cols-3 gap-2 place-items-center" : "space-y-2"}`}>
+              {oauthProviders.map((provider) => (
+                <OAuthButton
+                  key={provider}
+                  provider={provider}
+                  baseUrl={baseUrl}
+                  useThemedIcons={useThemedIcons}
+                  iconOnly={oauthProviders.length > 4}
+                />
+              ))}
+              {oauthProviders.length <= 4 && (
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="bg-sloth-bg px-2 text-gray-500">or</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
 
           <div className="text-center mt-4 text-sm">
             {isSignup ? "Already have an account?" : "Need an account?"}{" "}
