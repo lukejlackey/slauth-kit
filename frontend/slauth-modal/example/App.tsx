@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { SlauthModal } from "../src/components/SlauthModal";
+import { SlauthModal } from "../src";
 
 function App() {
   const [token, setToken] = useState<string | null>(null);
@@ -7,7 +7,8 @@ function App() {
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
       {!token ? (
-        <SlauthModal baseUrl="http://localhost:8080"
+        <SlauthModal
+          baseUrl="http://localhost:8080"
           onLoginSuccess={setToken}
           oauthProviders={[
             "google",
@@ -29,7 +30,7 @@ function App() {
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Logged in!</h1>
           <p>JWT Token:</p>
-          <pre className="bg-gray-200 p-2">{token}</pre>
+          <pre className="bg-gray-200 p-2 break-all">{token}</pre>
         </div>
       )}
     </div>
