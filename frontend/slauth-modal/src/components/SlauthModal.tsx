@@ -3,12 +3,16 @@ import { motion } from "framer-motion";
 import { useSlauth } from "../hooks/useSlauth";
 import { SlauthAuthForm } from "./SlauthAuthForm";
 import { OAuthButton } from "./OAuthButton";
+import { OAuthProviderKey } from "../config/oauthProviders";
+import { defaultTheme, ThemeConfig } from "../config/defaultTheme";
 
 export interface SlauthModalProps {
   baseUrl: string;
   onLoginSuccess?: (token: string) => void;
   oauthProviders?: OAuthProviderKey[];
   useThemedIcons?: boolean;
+  /** Override colors; falls back to `defaultTheme` */
+  theme?: ThemeConfig;
 }
 
 export const SlauthModal = ({
@@ -16,6 +20,7 @@ export const SlauthModal = ({
   onLoginSuccess,
   oauthProviders = [],
   useThemedIcons = false,
+  theme = defaultTheme,
 }: SlauthModalProps) => {
   const [isSignup, setIsSignup] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -27,12 +32,10 @@ export const SlauthModal = ({
 
   const handleSubmit = async () => {
     if (isSignup && password !== confirmPassword) return;
-
     setIsLoading(true);
     const action = isSignup ? signup : login;
     const token = await action(email, password);
     setIsLoading(false);
-
     if (token && onLoginSuccess) {
       onLoginSuccess(token);
     }
@@ -47,13 +50,19 @@ export const SlauthModal = ({
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 font-sans">
+    <div
+      className="fixed inset-0 flex items-center justify-center backdrop-blur-sm z-50 font-sans"
+      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+    >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
       >
-        <div className="bg-sloth-bg text-sloth-text p-8 rounded-2xl shadow-xl w-[24rem] transition-all">
+        <div
+          className="p-8 rounded-2xl shadow-xl w-[24rem] transition-all"
+          style={{ backgroundColor: theme.background, color: theme.text }}
+        >
           <h2 className="text-2xl font-bold mb-4 text-center">
             {isSignup ? "Create Your Account" : "Welcome Back"}
           </h2>
@@ -72,7 +81,13 @@ export const SlauthModal = ({
           />
 
           {oauthProviders.length > 0 && (
-            <div className={`m-4 ${oauthProviders.length > 4 ? "grid grid-cols-3 gap-2 place-items-center" : "space-y-2"}`}>
+            <div
+            className={
+              `m-4 ${oauthProviders.length > 4 ? 
+              "grid grid-cols-3 gap-2 place-items-center" : 
+              "space-y-2"
+              }`}
+            >
               {oauthProviders.map((provider) => (
                 <OAuthButton
                   key={provider}
@@ -88,19 +103,21 @@ export const SlauthModal = ({
                     <div className="w-full border-t border-gray-300"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="bg-sloth-bg px-2 text-gray-500">or</span>
+                    <span className="px-2" style={{ backgroundColor: theme.background, color: theme.text }}>
+                      or
+                    </span>
                   </div>
                 </div>
               )}
             </div>
           )}
 
-
           <div className="text-center mt-4 text-sm">
             {isSignup ? "Already have an account?" : "Need an account?"}{" "}
             <button
-              className="text-sloth-green hover:underline font-medium"
               onClick={toggleMode}
+              className="font-medium hover:underline"
+              style={{ color: theme.accent }}
             >
               {isSignup ? "Log In" : "Sign Up"}
             </button>
