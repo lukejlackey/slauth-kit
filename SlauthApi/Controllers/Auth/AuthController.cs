@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Authorization;
-using SlauthApi.Models.Domain;
+using Microsoft.Extensions.Options;
+using SlauthApi.Config;
 using SlauthApi.Models.Requests;
+using SlauthApi.Models.Domain;
 using SlauthApi.Services.Data;
 using System;
 using System.IdentityModel.Tokens.Jwt;
@@ -17,12 +18,12 @@ namespace SlauthApi.Controllers.Auth
     public class AuthController : ControllerBase
     {
         private readonly UserService _userService;
-        private readonly IConfiguration _config;
+        private readonly SlauthOptions _options;
 
-        public AuthController(UserService userService, IConfiguration config)
+        public AuthController(UserService userService, IOptions<SlauthOptions> options)
         {
             _userService = userService;
-            _config = config;
+            _options = options.Value;
         }
 
         [HttpPost("signup")]
@@ -70,7 +71,10 @@ namespace SlauthApi.Controllers.Auth
 
         private string GenerateJwtToken(string email)
         {
-            var key = Encoding.UTF8.GetBytes(_config["Jwt:Secret"]);
+            if (string.IsNullOrEmpty(_options.JwtSecret))
+                throw new InvalidOperationException("JWT Secret is not configured.");
+
+            var key = Encoding.UTF8.GetBytes(_options.JwtSecret);
             var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
