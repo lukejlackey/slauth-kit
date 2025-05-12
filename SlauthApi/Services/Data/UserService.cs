@@ -1,16 +1,16 @@
 using MongoDB.Driver;
-using SlauthApi.Models;
-using Microsoft.Extensions.Configuration;
+using SlauthApi.Models.Domain;
+using SlauthApi.Config;
 
-namespace SlauthApi.Services
+namespace SlauthApi.Services.Data
 {
     public class UserService
     {
         private readonly IMongoCollection<User> _users;
 
-        public UserService(IConfiguration config)
+        public UserService(SlauthOptions options)
         {
-            var client = new MongoClient(config["MONGO_URI"]);
+            var client = new MongoClient(options.MongoUri);
             var database = client.GetDatabase("slauthkit");
             _users = database.GetCollection<User>("users");
         }

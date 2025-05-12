@@ -4,60 +4,51 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using SlauthApi.Services;
+using SlauthApi.Services.Data;
+using SlauthApi.Services.Integration;
+using SlauthApi.Config;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load config from environment variables
-builder.Configuration.AddEnvironmentVariables();
+// Load config
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
 
-// Add services
+// Bind strongly-typed settings
+builder.Services.Configure<SlauthOptions>(builder.Configuration.GetSection("Slauth"));
+// Make SlauthOptions injectable directly
+builder.Services.AddSingleton(sp => sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<SlauthOptions>>().Value);
+
+// Register services
+builder.Services.AddSingleton<UserService>();
+builder.Services.AddSingleton<OAuthService>();
+
 builder.Services.AddControllers();
 
-var jwtSecret = builder.Configuration["Jwt:Secret"];
-var key = Encoding.UTF8.GetBytes(jwtSecret);
+// JWT auth remains the same
+var options = builder.Services.BuildServiceProvider().GetRequiredService<SlauthOptions>();
+var key = Encoding.UTF8.GetBytes(options.JwtSecret);
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.RequireHttpsMetadata = false; // keep false for local/dev
-    options.SaveToken = true;
-    options.TokenValidationParameters = new TokenValidationParameters
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(opts =>
     {
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(key)
-    };
-});
-
-builder.Services.AddSingleton<UserService>();
-
-// Enable authentication if needed in future
-// builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-//        .AddJwtBearer(...);
+        opts.RequireHttpsMetadata = false;
+        opts.SaveToken = true;
+        opts.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key)
+        };
+    });
 
 var app = builder.Build();
-
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
-// Optional: app.UseAuthentication();
-// Optional: app.UseAuthorization();
-
-app.UseEndpoints(endpoints =>
-{
-    endpoints.MapControllers();
-});
-
-// Health check route (keep this for testing)
+app.MapControllers();
 app.MapGet("/", () => "Slauth is alive!");
-
 app.Run();

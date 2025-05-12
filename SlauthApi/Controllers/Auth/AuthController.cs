@@ -1,15 +1,16 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
-using SlauthApi.Models;
+using Microsoft.AspNetCore.Authorization;
+using SlauthApi.Models.Domain;
+using SlauthApi.Models.Requests;
 using SlauthApi.Services;
-using BCrypt.Net;
+using System;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
 
-namespace SlauthApi.Controllers
+namespace SlauthApi.Controllers.Auth
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -28,7 +29,6 @@ namespace SlauthApi.Controllers
         public async Task<IActionResult> Signup([FromBody] SignupRequest request)
         {
             Console.WriteLine($"Signup hit with email: {request.Email}");
-
             var existing = await _userService.GetUserByEmail(request.Email);
             if (existing != null)
             {
@@ -59,7 +59,7 @@ namespace SlauthApi.Controllers
             var token = GenerateJwtToken(user.Email);
             return Ok(new { token });
         }
-        
+
         [Authorize]
         [HttpGet("me")]
         public IActionResult Me()

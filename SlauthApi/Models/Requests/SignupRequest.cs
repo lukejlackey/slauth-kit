@@ -1,6 +1,6 @@
-namespace SlauthApi.Models
+namespace SlauthApi.Models.Requests
 {
-    public class LoginRequest
+    public class SignupRequest
     {
         public string Email { get; set; }
         public string Password { get; set; }
