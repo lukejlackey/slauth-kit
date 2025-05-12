@@ -1,7 +1,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace SlauthApi.Models.Domain;
+namespace SlauthApi.Models.Domain
 {
     public class User
     {
@@ -13,15 +13,13 @@ namespace SlauthApi.Models.Domain;
         public string Email { get; set; }
 
         [BsonElement("password")]
-        [BsonIgnoreIfNull]
-        public string? Password { get; set; }  // Optional for OAuth users
+        public string Password { get; set; }
 
+        // Optional OAuth fields
         [BsonElement("provider")]
-        [BsonIgnoreIfNull]
-        public string? Provider { get; set; }  // e.g., "google", "github"
+        public string? Provider { get; set; }
 
         [BsonElement("providerId")]
-        [BsonIgnoreIfNull]
-        public string? ProviderId { get; set; }  // e.g., Google/GitHub user ID
+        public string? ProviderId { get; set; }
     }
 }
