@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using SlauthApi.Models.Domain;
 using SlauthApi.Models.Requests;
-using SlauthApi.Services;
+using SlauthApi.Services.Data;
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;

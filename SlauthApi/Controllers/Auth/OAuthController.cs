@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
-using SlauthApi.Services;
+using SlauthApi.Services.Integration;
 using System;
 using System.Threading.Tasks;
 
