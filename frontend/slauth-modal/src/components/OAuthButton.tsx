@@ -20,7 +20,7 @@ export const OAuthButton = ({
 
 
     const handleOAuth = () => {
-        window.location.href = `${baseUrl}/auth/oauth/${provider}`;
+        window.location.href = `${baseUrl}/api/auth/oauth/${provider}`;
     };
 
     return (

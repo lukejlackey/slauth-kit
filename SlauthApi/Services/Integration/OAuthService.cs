@@ -1,55 +1,134 @@
-using MongoDB.Driver;
-using SlauthApi.Models.Domain;
-using SlauthApi.Config;
+using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using MongoDB.Driver;
+using SlauthApi.Config;
+using SlauthApi.Models.Domain;
 
 namespace SlauthApi.Services.Integration
 {
     public class OAuthService
     {
         private readonly IMongoCollection<User> _users;
-        private readonly Dictionary<string, OAuthProviderOptions> _secrets;
+        private readonly SlauthOptions _options;
 
         public OAuthService(SlauthOptions options)
         {
-            _secrets = options.OAuthProviders ?? new Dictionary<string, OAuthProviderOptions>();
-            var client = new MongoClient(options.MongoUri);
-            var database = client.GetDatabase("slauthkit");
-            _users = database.GetCollection<User>("users");
-        }
+            _options = options;
 
-        public async Task<User> GetUserByProvider(string provider, string providerId)
-        {
-            return await _users.Find(u => u.Provider == provider && u.ProviderId == providerId)
-                               .FirstOrDefaultAsync();
-        }
-
-        public async Task<User> CreateOAuthUser(string email, string provider, string providerId)
-        {
-            var user = new User
-            {
-                Email = email,
-                Provider = provider,
-                ProviderId = providerId
-            };
-            await _users.InsertOneAsync(user);
-            return user;
+            var client = new MongoClient(_options.MongoUri);
+            var db = client.GetDatabase("slauthkit");
+            _users = db.GetCollection<User>("users");
         }
 
         /// <summary>
-        /// Exchange the OAuth code for a user (or create one) and return whatever you want the controller to send back.
-        /// TODO: wire up the real provider‐specific logic here.
+        /// Exchange the OAuth code for a JWT-wrapped login response.
         /// </summary>
-        public async Task<object> HandleOAuthCallback(string provider, string code)
+        public async Task<object> HandleOAuthCallback(string providerKey, string code)
         {
-            // Example stub:
-            // 1. Exchange `code` for an access_token
-            // 2. Fetch the user’s profile/email
-            // 3. Lookup or create a local User via GetUserByProvider/CreateOAuthUser
-            // 4. Generate and return a JWT or user object
+            if (!_options.OAuthProviders.TryGetValue(providerKey, out var cfg))
+                throw new ArgumentException($"Unknown provider '{providerKey}'");
 
-            throw new NotImplementedException("OAuth callback handling not implemented yet.");
+            // 1) Exchange code for access_token
+            using var http = new HttpClient();
+            var redirectUri = cfg.RedirectUri; // assume you stored redirect URI in your options
+            var tokenRequest = new Dictionary<string, string>
+            {
+                ["client_id"] = cfg.ClientId,
+                ["client_secret"] = cfg.ClientSecret,
+                ["code"] = code,
+                ["redirect_uri"] = redirectUri,
+                ["grant_type"] = "authorization_code"
+            };
+
+            var tokenResp = await http.PostAsync(
+    cfg.TokenEndpoint,
+    new FormUrlEncodedContent(tokenRequest));
+            if (!tokenResp.IsSuccessStatusCode)
+            {
+                var body = await tokenResp.Content.ReadAsStringAsync();
+                throw new Exception(
+                    $"[{providerKey}] token exchange failed: {(int)tokenResp.StatusCode} {tokenResp.ReasonPhrase} — {body}"
+                );
+            }
+
+            using var tokenDoc = JsonDocument.Parse(await tokenResp.Content.ReadAsStringAsync());
+            var root = tokenDoc.RootElement;
+            var accessToken = root.GetProperty("access_token").GetString()
+                                ?? throw new Exception("access_token missing");
+
+            // 2) Fetch profile
+            http.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", accessToken);
+
+            var profileResp = await http.GetAsync(cfg.UserInfoEndpoint);
+            if (!profileResp.IsSuccessStatusCode)
+            {
+                var body = await profileResp.Content.ReadAsStringAsync();
+                throw new Exception(
+                $"[{providerKey}] profile fetch failed: {(int)profileResp.StatusCode} {profileResp.ReasonPhrase} — {body}"
+                                );
+            }
+            using var profileDoc = JsonDocument.Parse(await profileResp.Content.ReadAsStringAsync());
+            var profile = profileDoc.RootElement;
+
+            // 3) Extract providerId & email (provider-specific)
+            string providerId = providerKey switch
+            {
+                "google" => profile.GetProperty("sub").GetString()!,
+                "github" => profile.GetProperty("id").GetRawText(),
+                "discord" => profile.GetProperty("id").GetString()!,
+                "microsoft" => profile.GetProperty("id").GetString()!,
+                "facebook" => profile.GetProperty("id").GetString()!,
+                "twitter" => profile.GetProperty("id_str").GetString()!,
+                "apple" => profile.GetProperty("sub").GetString()!,
+                "gitlab" => profile.GetProperty("id").GetRawText(),
+                "linkedin" => profile.GetProperty("id").GetString()!,
+                "reddit" => profile.GetProperty("id").GetString()!,
+                "amazon" => profile.GetProperty("user_id").GetString()!,
+                "twitch" => profile.GetProperty("id").GetString()!,
+                _ => throw new Exception($"No providerId handler for '{providerKey}'")
+            };
+
+            string email = providerKey switch
+            {
+                "github" when !profile.TryGetProperty("email", out var _) =>
+                    throw new Exception("GitHub email missing; need separate /user/emails call"),
+                _ => profile.GetProperty("email").GetString()!
+            };
+
+            // 4) Upsert user
+            var filter = Builders<User>.Filter.Eq(u => u.Provider, providerKey)
+                       & Builders<User>.Filter.Eq(u => u.ProviderId, providerId);
+            var update = Builders<User>.Update
+                .Set(u => u.Email, email)
+                .Set(u => u.Provider, providerKey)
+                .Set(u => u.ProviderId, providerId);
+            var opts = new FindOneAndUpdateOptions<User>
+            {
+                IsUpsert = true,
+                ReturnDocument = ReturnDocument.After
+            };
+            var user = await _users.FindOneAndUpdateAsync(filter, update, opts);
+
+            // 5) Issue JWT
+            var key = Encoding.UTF8.GetBytes(_options.JwtSecret);
+            var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
+            var claims = new[] { new Claim(ClaimTypes.Email, user.Email!) };
+            var jwtToken = new JwtSecurityToken(
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(2),
+                signingCredentials: creds);
+            var jwtString = new JwtSecurityTokenHandler().WriteToken(jwtToken);
+
+            return new { token = jwtString };
         }
     }
 }
