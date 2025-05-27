@@ -6,6 +6,7 @@ namespace SlauthApi.Config
     {
         public string MongoUri { get; set; } = null!;
         public string JwtSecret { get; set; } = null!;
+        public string FrontendUri    { get; set; } = null!;
         public Dictionary<string, OAuthProviderOptions> OAuthProviders { get; set; } = new();
     }
 

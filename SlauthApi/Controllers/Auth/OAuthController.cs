@@ -1,10 +1,11 @@
+using System;
+using System.Web;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using SlauthApi.Config;
 using SlauthApi.Services.Integration;
-using System;
-using System.Linq;
-using System.Web;
+using SlauthApi.Models.Responses;
 
 namespace SlauthApi.Controllers.Auth
 {
@@ -32,26 +33,21 @@ namespace SlauthApi.Controllers.Auth
             if (!_options.OAuthProviders.TryGetValue(provider, out var cfg))
                 return BadRequest($"Unknown OAuth provider '{provider}'.");
 
-            // Build your callback URL dynamically:
             var redirectUri = Url.Action(
                 action: nameof(Callback),
                 controller: "OAuth",
                 values: new { provider },
                 protocol: Request.Scheme);
 
-            // Build query params
             var qs = HttpUtility.ParseQueryString(string.Empty);
             qs["client_id"]     = cfg.ClientId;
-            qs["redirect_uri"]  = redirectUri;
+            qs["redirect_uri"]  = redirectUri!;
             qs["response_type"] = "code";
             qs["scope"]         = string.Join(" ", cfg.Scopes ?? Array.Empty<string>());
-            // (Optionally) include state to mitigate CSRF
             var state = Guid.NewGuid().ToString("N");
-            qs["state"]         = state;
-            // TODO: store 'state' in cookie/session so you can verify it in Callback
+            qs["state"] = state;
 
             var authUrl = $"{cfg.AuthorizationEndpoint}?{qs}";
-
             return Redirect(authUrl);
         }
 
@@ -67,15 +63,14 @@ namespace SlauthApi.Controllers.Auth
             if (string.IsNullOrEmpty(code))
                 return BadRequest("Missing OAuth code.");
 
-            // TODO: verify 'state' matches what you issued in Challenge()
-
             try
             {
-                var result = await _oauthService.HandleOAuthCallback(provider, code);
+                AuthResponse result = await _oauthService.HandleOAuthCallback(provider, code);
                 if (result == null)
                     return Unauthorized("OAuth login failed.");
 
-                return Ok(result);
+                // redirect back into your SPA with the token in the URL
+                return Redirect($"{_options.FrontendUri}?token={Uri.EscapeDataString(result.Token)}");
             }
             catch (Exception ex)
             {
