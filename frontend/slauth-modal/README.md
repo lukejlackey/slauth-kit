@@ -6,12 +6,10 @@ Simple drop-in authentication modal for React apps that connects to a Slauth-Kit
 
 ## 📦 Installation
 
-Install via npm (or yarn):
+Install via npm:
 
 ```bash
 npm install slauth-modal
-# or
-yarn add slauth-modal
 ```
 
 ---
@@ -148,5 +146,3 @@ This overrides the default sloth-inspired brown/green palette.
 ## 📄 License
 
 MIT © Luke Lackey
-
-```
